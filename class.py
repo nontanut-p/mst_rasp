@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from termios import PARMRK
 import tkinter as tk
 from tkinter import Message, ttk
@@ -23,10 +26,11 @@ drive = GoogleDrive(gauth)
 class ParentClass:
     time_start = ''
     macd_thredshold = 1.25
-    short_MV = 30
-    portName = '/dev/ttyACM0'
+    short_MV = 50
+    fileName = 'test'
+    portName = '/dev/ttyUSB0'
     connection_status = False
-    baudrate = 57600
+    baudrate = 9600
     baudrates = [9600,
                  14400, 19200, 38400, 57600, 115200, 128000, 256000]
   #  smovingAverage_List = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
@@ -34,7 +38,7 @@ class ParentClass:
   #  thresholds = [1.0, 1.10, 1.15, 1.20, 1.25, 1.30, 1.35,
   #                1.40, 1.45, 1.50, 1.60, 1.70, 1.80, 1.90, 2.0]
   #  st_dt = [0,50, 100, 150, 200, 250, 300]
-    short_ma = 30
+    short_ma = 50
     long_ma = 150
     threshold = 1.25
     start_dt = 200
@@ -56,9 +60,9 @@ class ParentClass:
 
     def __init__(self, root, title):
         self.root = root
-        root.title(title)
-        root.geometry("890x580")
-        root.configure(bg='light steel blue')
+        self.root.title(title)
+        self.root.geometry("890x580")
+        self.root.configure(bg='light steel blue')
         self.fig = Figure()
         self.ax = self.fig.add_subplot(111)
         self.fig.patch.set_facecolor('lightsteelblue')
@@ -100,12 +104,26 @@ class ParentClass:
     def select(self, event=None, *name):
         # get selection from event
         name = event.widget.get()
+        
     def end_process_clear_save(self):
         now = datetime.datetime.now()
-        timestamp = str(now.year)  + '-' +  str(now.month)  + '-' + str(now.day) + '-' +  str(now.hour)  + ':'+ str(now.minute) 
-        figure_png = timestamp+'.png'
-        self.fig.savefig(figure_png)
-        csv_name = timestamp+'.csv'
+        print('end_process_clear_save :',self.fileName, ':fileName')
+        
+        name = self.fileName
+        figure_png = name
+        
+        print('fileName:', figure_png , 'Name:', name, 'type:', type(figure_png))
+        
+        print('figure_png:',figure_png, ':figure_png')
+        
+        name = ''
+        for i in range(len(figure_png)):
+            print(i, ":", figure_png[i], ", ", ord(figure_png[i]))
+            if ord(figure_png[i]) != 0:
+                name = name + figure_png[i]
+        print('name:', name, ', len:', len(name))
+        self.fig.savefig(name, format='png')
+        csv_name = 'test2' + '.csv'
         e = open(csv_name, "a")
         writer =csv.writer(e)
         writer.writerow(['RAW', 'Filter Short' , 'Filter Long'])
@@ -115,7 +133,7 @@ class ParentClass:
             writer.writerow([str(self.frontData[i]),str(self.shortfront[i]) , str(self.longfront[i])])
             #.write(',')
         e.close()  
-        # UPLOAD TO GOOGLE 
+      
 
 
         self.clearplot()
@@ -145,14 +163,21 @@ class ParentClass:
     
             if self.ser.in_waiting > 0:
                 self.tmp = self.ser.readline().decode("Ascii")
+                
                 print(self.tmp , 'reading data')
                 if "START" in self.tmp:
+                    print("test",self.tmp)
+                    # FIND : FILENAME AFTER THE START WAS FOUND
+                    self.fileName = str(self.tmp[6:-2])
+                    st = 'fileName:' + str(self.fileName) +': found start'
+                    print(st)
                     self.start_stop(True, True)
                     self.plot = True
                 elif "STOP" in self.tmp :
                     #self.clearplot()
+                    print('STOP:',self.fileName, ':after found stop')
                     self.plot = False
-                    self.end_process_clear_save() # New -> Change to wating to Start Command
+                    self.end_process_clear_save() # New -> Change to wating for Start Command
                     self.start_stop(True , False)
                 #self.string_data = self.string_data + self.tmp
 		        #print('try to ploting')
@@ -165,8 +190,6 @@ class ParentClass:
                         #string_data = self.tmp.split()
                         #print(float(string_data[1]))
                         self.frontData.append(data_input)  # Data ชุดหน้า
-                     
- 
                         print(data_input)   #self.backData.append(
                         #    float(string_data[1]))  # Data ชุดหลัง
                         # self.lines.set_ydata(self.frontData)
@@ -233,7 +256,7 @@ class ParentClass:
     def on_select_bb(self, event=None):
         self.baudrate = event.widget.get()
         print(event.widget.get())
-        print("change baudrate to : ", self.baudrate)
+        print("Baudrate has changed : ", self.baudrate)
 
     def serial_ports(self):
         return serial.tools.list_ports.comports()
@@ -256,10 +279,10 @@ class ParentClass:
         self.canvas.draw()
         print('plot cleared')
 
-    def create_program(self, root):
+    def create_program(self):
         self.var1 = tk.IntVar()
         self.agreement = tk.StringVar()
-        self.root = root
+        #self.root = root
         self.l10 = tk.Label(self.root, bg='white', width=20,
                             text='STATUS :').place(x=0, y=525)
         self.cb = ttk.Combobox(self.root, values=self.serial_ports())
@@ -282,7 +305,8 @@ class ParentClass:
 def main():
     root = tk.Tk()
     program = ParentClass(root, 'MST')
-    program.create_program(root)
+    #program.create_program(root)
+    program.create_program()
     root.mainloop()
 
 
